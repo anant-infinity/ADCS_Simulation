@@ -145,7 +145,7 @@ for delta_t in range(0, 1000, 100):
 
     # Moment of Inertia - Assuming uniform cuboid and assuming principal axes (approx.)
     I = [[0, 0, 0], [0, 0, 0], [0, 0, 0, ]]
-    
+
     I[0][0] = 10 * ((0.2 ** 2) + (0.3 ** 2)) / 12
     I[1][1] = 10 * ((0.45 ** 2) + (0.3 ** 2)) / 12
     I[2][2] = 10 * ((0.2 ** 2) + (0.45 ** 2)) / 12
@@ -182,8 +182,8 @@ for delta_t in range(0, 1000, 100):
 
     omega = [0, 0.34906585, 0.34906585, 0.349065850]
 
-    for i in range(1,4):
-        omega[i] += omega[i] + (get_alpha(I, Tg, omega)[i]*delta_t)
+    for i in range(0,3):
+        omega[i+1] += omega[i+1] + (get_alpha(I, Tg, omega)[i]*delta_t)
 
     for i in range(0, 4):
         for j in range(0, 4):
