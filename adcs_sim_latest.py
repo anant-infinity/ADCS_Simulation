@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 from astropy import units as u
 from poliastro.bodies import Earth
 from poliastro.twobody import Orbit
+import  poliastro.twobody
 from poliastro.plotting import plot
 plt.style.use("seaborn")
 
@@ -29,9 +30,9 @@ import poliastro
 year = 2019
 month = 9
 day = 1
-hour = 10
-minute = 23
-second = 57
+hour = 0
+minute = 0
+second = 0
 
 plot_y = []
 plot_x = []
@@ -80,7 +81,7 @@ for delta_t in range(0, 1000, 100):
          [q[3], -q[2], q[1], q[0]]]
 
     JD = 367 * year - int(7 * (year + int((month + 9) / 12))) + int(275 * month / 9) + day + 1721013.5 + (hour / 24) + (
-            minute / 14400) + (second / 86400)
+            minute / 14400) + ((second + (delta_t*0.001)) / 86400)
     T_UT1 = (JD - 2451545.0) / 36525
     lambda_Msun = 280.4606184 + (36000.77005361 * T_UT1)
     M_Sun = 357.5277233 + (35999.05034 * T_UT1)
@@ -95,16 +96,24 @@ for delta_t in range(0, 1000, 100):
            math.sin(epsilon) * math.sin(math.radians(lambda_elliptic))]
 
     def get_Rc():
-        # initial position vector and velocity vector in inertial frame
-        r = [-6045, -3490, 2500] * u.km
-        v = [-3.457, 6.618, 2.533] * u.km / u.s
+        # initial classical orbital elements
+        # noinspection PyUnresolvedReferences
+        a = 6878137 * u.meter
+        ecc = 0 * u.one
+        inc = 0.872699533 * u.rad
+        raan = 6.280724393 * u.rad
+        argp = 0 * u.rad
+        nu = 6.280986192 * u.rad
 
-        ss = Orbit.from_vectors(Earth, r, v)
+        ss = Orbit.from_classical(Earth, a, ecc, inc, raan, argp, nu, JD)
+        # noinspection PyUnresolvedReferences
+        poliastro.twobody.propagation.mean_motion(ss, (delta_t/1000))
+        print("position vector is:", ss.state.r)
+        print(ss.state.r[0])
 
-        Orbit.from_vectors(Earth, r, v, epoch=JD)
 
 
-
+    get_Rc()
 
     def quaternion_multiply(quaternion1, quaternion0):
         w0, x0, y0, z0 = quaternion0
@@ -197,9 +206,6 @@ for delta_t in range(0, 1000, 100):
     for i in range(0, 4):
         for j in range(0, 4):
             rate_of_change[i] = 0.5*X[i][j] * omega[j]
-
-
-
 
 
 
