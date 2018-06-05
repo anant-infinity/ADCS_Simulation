@@ -143,12 +143,15 @@ for delta_t in range(0, 1000, 100):
         Tg[2] = (k * Rc1 * Rc2 * (I[1][1] - I[0][0])) / (Rc ** 3)
         return Tg
 
-    # Moment of Inertia - Assuming uniform cuboid and assuming principal axes (approx.)
-    I = [[0, 0, 0], [0, 0, 0], [0, 0, 0, ]]
+    # MI got from Spencer
+    I = [[0.09, 0, 0], [0, 0.12, 0], [0, 0, 0.14]]
 
-    I[0][0] = 10 * ((0.2 ** 2) + (0.3 ** 2)) / 12
-    I[1][1] = 10 * ((0.45 ** 2) + (0.3 ** 2)) / 12
-    I[2][2] = 10 * ((0.2 ** 2) + (0.45 ** 2)) / 12
+    # Moment of Inertia - Assuming uniform cuboid and assuming principal axes (approx.)
+    # I = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
+
+    # I[0][0] = 10 * ((0.2 ** 2) + (0.3 ** 2)) / 12
+    # I[1][1] = 10 * ((0.45 ** 2) + (0.3 ** 2)) / 12
+    # I[2][2] = 10 * ((0.2 ** 2) + (0.45 ** 2)) / 12
 
     Tg = gravity_gradient_torque(I, 5.80 * (10 ** 5))
     print("Torque is :", Tg)
@@ -172,11 +175,17 @@ for delta_t in range(0, 1000, 100):
             temp3[i] = Tg[i] - temp2[i]
 
         I_num = np.matrix(I)
+
+        #print (I_num)
+        #print ("Inverse is: ",I_num.I)
+
+        I_inverse = I_num.I.tolist()
+
         alpha = [0, 0, 0]
 
         for i in range(3):
             for k in range(3):
-                alpha[i] += I_num.I[i][k] * temp3[k]
+                alpha[i] += I_inverse[i][k] * temp3[k]
 
         return alpha
 
