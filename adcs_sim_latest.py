@@ -140,6 +140,7 @@ for delta_t in range(0, 1000, 100):
         return Rc
 
     print("Rc in ECI Frame in meters: ", get_Rc(ss))
+    print()
 
     def gravity_gradient_torque(I , Rc):     # Rc is distance of CM from center of Earth
 
@@ -148,19 +149,17 @@ for delta_t in range(0, 1000, 100):
         # Constant 3*G*Me
         k = 3 * 6.674 * (10 ** (-11)) * 5.972 * (10 ** 24)
 
-        mod_Rc = math.sqrt(Rc[0] ** 2 + Rc[1] ** 2 + Rc[2] ** 2)
-        Rc_norm = [0, 0, 0]
-        for var in range(3):
-            Rc_norm[var] = (Rc[var]/mod_Rc)
+        #mod_Rc = math.sqrt(Rc[0] ** 2 + Rc[1] ** 2 + Rc[2] ** 2)
+        ##for var in range(3):
+            #Rc_norm[var] = (Rc[var]/mod_Rc)
+        mod_Rc = math.sqrt((Rc[0] ** 2) + (Rc[1] ** 2) + (Rc[2] ** 2))
 
-
-
-        L1 = [0,Rc_norm[0],Rc_norm[1],Rc_norm[2]]
-        print("Rc Normalized is: ", L1)
+        L1 = [0, Rc[0], Rc[1], Rc[2]]
         temp4 = quaternion_multiply(L1, q_star)
         Rc_b = quaternion_multiply(q, temp4)
 
         print("Rc in Body Frame is:", Rc_b[1:4])
+        print()
 
 
         # Randomly generated values of Rc1, Rc2 , Rc3
@@ -168,9 +167,9 @@ for delta_t in range(0, 1000, 100):
         #Rc2 = random.uniform(0, 1)
         #Rc3 = random.uniform(0, 1)
 
-        Tg[0] = (k * Rc_b[2] * Rc_b[3] * (I[2][2] - I[1][1])) / (mod_Rc ** 3)
-        Tg[1] = (k * Rc_b[1] * Rc_b[3] * (I[0][0] - I[2][2])) / (mod_Rc ** 3)
-        Tg[2] = (k * Rc_b[1] * Rc_b[2] * (I[1][1] - I[0][0])) / (mod_Rc ** 3)
+        Tg[0] = (k * Rc_b[2] * Rc_b[3] * (I[2][2] - I[1][1])) / (mod_Rc ** 5)
+        Tg[1] = (k * Rc_b[1] * Rc_b[3] * (I[0][0] - I[2][2])) / (mod_Rc ** 5)
+        Tg[2] = (k * Rc_b[1] * Rc_b[2] * (I[1][1] - I[0][0])) / (mod_Rc ** 5)
         return Tg
 
     # MI got from Spencer
@@ -185,6 +184,7 @@ for delta_t in range(0, 1000, 100):
     L2 = get_Rc(ss)
     Tg = gravity_gradient_torque(I, L2)
     print("Torque is :", Tg)
+    print()
 
     # Eulers Formula
     def get_alpha(I, Tg, omega):
@@ -221,10 +221,11 @@ for delta_t in range(0, 1000, 100):
 
 
     for i in range(0,3):
-        omega[i+1] = omega[i+1] + (get_alpha(I, Tg, omega_three)[i]*delta_t)
-        omega_three[i] = omega_three[i] + (get_alpha(I, Tg, omega_three)[i]*delta_t)
+        omega[i+1] = omega[i+1] + (get_alpha(I, Tg, omega_three)[i]*(delta_t/1000))
+        omega_three[i] = omega_three[i] + (get_alpha(I, Tg, omega_three)[i]*(delta_t/1000))
 
     print("Omega after", delta_t,"Milliseconds is: ",omega_three )
+    print()
 
     for i in range(0, 4):
         for j in range(0, 4):
