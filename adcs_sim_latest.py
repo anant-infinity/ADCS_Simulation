@@ -16,17 +16,7 @@ import  poliastro.twobody
 from poliastro.plotting import plot
 plt.style.use("seaborn")
 
-import poliastro
-#from astropy import constants as const
-#from sgp4.earth_gravity import wgs72
-#from sgp4.io import twoline2rv
-
-#line1 = ('1 00005U 58002B   00179.78495062  ''.00000023  00000-0  28098-4 0  4753')
-#line2 = ('2 00005  34.2682 348.7242 1859667 ''331.7664  19.3264 10.82419157413667')
-
-
-#satellite = twoline2rv(line1, line2, wgs72)
-
+#initial date
 year = 2019
 month = 9
 day = 1
@@ -51,20 +41,39 @@ X = [[q[0], -q[1], -q[2], -q[3]],
      [q[2], q[3], q[0], -q[1]],
      [q[3], -q[2], q[1], q[0]]]
 # 4x1 matrix - Initial omega
-Y = [0, 0.34906585, 0.34906585, 0.349065850]
-# print(X,Y)
+omega = [0, 0.34906585, 0.34906585, 0.349065850]
+omega_three = omega[1:4]
 
-# rate_of_change is 4x1
+# 4x1 matrix - rate_of_change of quaternion
 rate_of_change = [0, 0, 0, 0]
 
 for i in range(0, 4):
     for j in range(0, 4):
-        rate_of_change[i] += X[i][j] * Y[j]
+        rate_of_change[i] += X[i][j] * omega[j]
 
-print("Initial rate of change: ")
-for r in rate_of_change:
-    print(r)
+print("Initial rate of change is: ", rate_of_change)
+print()
 
+# defining orbit
+# initial classical orbital elements
+# noinspection PyUnresolvedReferences
+a = 6878.137 * u.km
+ecc = 0 * u.one
+#inc = 0.872699533 * u.rad
+#raan = 6.280724393 * u.rad
+#argp = 0 * u.rad
+#nu = 6.280986192 * u.rad
+# noinspection PyUnresolvedReferences
+inc = 50.002 * u.deg
+# noinspection PyUnresolvedReferences
+raan = 359.859 * u.deg
+# noinspection PyUnresolvedReferences
+argp = 0 * u.deg
+# noinspection PyUnresolvedReferences
+nu = 359.874 * u.deg
+ss = Orbit.from_classical(Earth, a, ecc, inc, raan, argp, nu, 2448122.5)
+
+# Simulation Loop Starts
 for delta_t in range(0, 1000, 100):
     print("Quaternion after ", delta_t, "milliseconds is: "),
     for i in range(0, 4):
@@ -74,12 +83,14 @@ for delta_t in range(0, 1000, 100):
         q[i] = q[i] / mod_q
         print(" ", q[i], " "),
     print("")
+    print()
+    #q conjugate
     q_star = [q[0], -q[1], -q[2], -q[3]]
     X = [[q[0], -q[1], -q[2], -q[3]],
          [q[1], q[0], -q[3], q[1]],
          [q[2], q[3], q[0], -q[1]],
          [q[3], -q[2], q[1], q[0]]]
-
+    #Julian Date from current Date
     JD = 367 * year - int(7 * (year + int((month + 9) / 12))) + int(275 * month / 9) + day + 1721013.5 + (hour / 24) + (
             minute / 14400) + ((second + (delta_t*0.001)) / 86400)
     T_UT1 = (JD - 2451545.0) / 36525
@@ -95,25 +106,6 @@ for delta_t in range(0, 1000, 100):
     s_i = [0, math.cos(math.radians(lambda_elliptic)), math.cos(epsilon) * math.sin(math.radians(lambda_elliptic)),
            math.sin(epsilon) * math.sin(math.radians(lambda_elliptic))]
 
-    def get_Rc():
-        # initial classical orbital elements
-        # noinspection PyUnresolvedReferences
-        a = 6878137 * u.meter
-        ecc = 0 * u.one
-        inc = 0.872699533 * u.rad
-        raan = 6.280724393 * u.rad
-        argp = 0 * u.rad
-        nu = 6.280986192 * u.rad
-
-        ss = Orbit.from_classical(Earth, a, ecc, inc, raan, argp, nu, JD)
-        # noinspection PyUnresolvedReferences
-        poliastro.twobody.propagation.mean_motion(ss, (delta_t/1000))
-        print("position vector is:", ss.state.r)
-        print(ss.state.r[0])
-
-
-
-    get_Rc()
 
     def quaternion_multiply(quaternion1, quaternion0):
         w0, x0, y0, z0 = quaternion0
@@ -129,11 +121,25 @@ for delta_t in range(0, 1000, 100):
 
     mod_sb = math.sqrt((s_b[1] ** 2) + (s_b[2] ** 2) + (s_b[3] ** 2))
 
-    print("Sun Vector in ground frame:")
-    print(s_b[1:4])
+    print("Sun Vector in body frame is: ", s_b[1:4])
+    print()
 
+    #Adding values to plot of Direction Cosine
     plot_x.append(delta_t)
     plot_y.append((s_b[3] / mod_sb))
+
+    def get_Rc(ss):
+        # noinspection PyUnresolvedReferences
+        #ss = ss.propagate()
+        #poliastro.twobody.propagation.mean_motion(ss, (delta_t)/1000)
+        #print("position vector is:", ss.state.r)
+        Rc = ss.state.r.value
+        # Convert to Meters
+        for i in range(3):
+            Rc[i]=Rc[i]*1000
+        return Rc
+
+    print("Rc in ECI Frame in meters: ", get_Rc(ss))
 
     def gravity_gradient_torque(I , Rc):     # Rc is distance of CM from center of Earth
 
@@ -142,14 +148,29 @@ for delta_t in range(0, 1000, 100):
         # Constant 3*G*Me
         k = 3 * 6.674 * (10 ** (-11)) * 5.972 * (10 ** 24)
 
-        # Randomly generated values of Rc1, Rc2 , Rc3
-        Rc1 = random.uniform(0, 1)
-        Rc2 = random.uniform(0, 1)
-        Rc3 = random.uniform(0, 1)
+        mod_Rc = math.sqrt(Rc[0] ** 2 + Rc[1] ** 2 + Rc[2] ** 2)
+        Rc_norm = [0, 0, 0]
+        for var in range(3):
+            Rc_norm[var] = (Rc[var]/mod_Rc)
 
-        Tg[0] = (k * Rc2 * Rc3 * (I[2][2] - I[1][1])) / (Rc ** 3)
-        Tg[1] = (k * Rc1 * Rc3 * (I[0][0] - I[2][2])) / (Rc ** 3)
-        Tg[2] = (k * Rc1 * Rc2 * (I[1][1] - I[0][0])) / (Rc ** 3)
+
+
+        L1 = [0,Rc_norm[0],Rc_norm[1],Rc_norm[2]]
+        print("Rc Normalized is: ", L1)
+        temp4 = quaternion_multiply(L1, q_star)
+        Rc_b = quaternion_multiply(q, temp4)
+
+        print("Rc in Body Frame is:", Rc_b[1:4])
+
+
+        # Randomly generated values of Rc1, Rc2 , Rc3
+        #Rc1 = random.uniform(0, 1)
+        #Rc2 = random.uniform(0, 1)
+        #Rc3 = random.uniform(0, 1)
+
+        Tg[0] = (k * Rc_b[2] * Rc_b[3] * (I[2][2] - I[1][1])) / (mod_Rc ** 3)
+        Tg[1] = (k * Rc_b[1] * Rc_b[3] * (I[0][0] - I[2][2])) / (mod_Rc ** 3)
+        Tg[2] = (k * Rc_b[1] * Rc_b[2] * (I[1][1] - I[0][0])) / (mod_Rc ** 3)
         return Tg
 
     # MI got from Spencer
@@ -161,8 +182,8 @@ for delta_t in range(0, 1000, 100):
     # I[0][0] = 10 * ((0.2 ** 2) + (0.3 ** 2)) / 12
     # I[1][1] = 10 * ((0.45 ** 2) + (0.3 ** 2)) / 12
     # I[2][2] = 10 * ((0.2 ** 2) + (0.45 ** 2)) / 12
-
-    Tg = gravity_gradient_torque(I, 5.80 * (10 ** 5))
+    L2 = get_Rc(ss)
+    Tg = gravity_gradient_torque(I, L2)
     print("Torque is :", Tg)
 
     # Eulers Formula
@@ -198,10 +219,12 @@ for delta_t in range(0, 1000, 100):
 
         return alpha
 
-    omega = [0, 0.34906585, 0.34906585, 0.349065850]
 
     for i in range(0,3):
-        omega[i+1] += omega[i+1] + (get_alpha(I, Tg, omega)[i]*delta_t)
+        omega[i+1] = omega[i+1] + (get_alpha(I, Tg, omega_three)[i]*delta_t)
+        omega_three[i] = omega_three[i] + (get_alpha(I, Tg, omega_three)[i]*delta_t)
+
+    print("Omega after", delta_t,"Milliseconds is: ",omega_three )
 
     for i in range(0, 4):
         for j in range(0, 4):
