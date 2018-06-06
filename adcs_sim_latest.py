@@ -12,7 +12,8 @@ import matplotlib.pyplot as plt
 from astropy import units as u
 from poliastro.bodies import Earth
 from poliastro.twobody import Orbit
-import  poliastro.twobody
+import poliastro.twobody
+import poliastro
 from poliastro.plotting import plot
 plt.style.use("seaborn")
 
@@ -131,9 +132,15 @@ for delta_t in range(0, 1000, 100):
     def get_Rc(ss):
         # noinspection PyUnresolvedReferences
         #ss = ss.propagate()
-        #poliastro.twobody.propagation.mean_motion(ss, (delta_t)/1000)
+        #poliastro.twobody.propagation.mean_motion(ss, delta_t/1000)
         #print("position vector is:", ss.state.r)
         Rc = ss.state.r.value
+
+        # noinspection PyUnresolvedReferences
+
+        #ss_new = ss.propagate(delta_t/1000 * u.s)
+        #print("Orbit Details: ", ss_new, ss_new.epoch)
+
         # Convert to Meters
         for i in range(3):
             Rc[i]=Rc[i]*1000
@@ -159,6 +166,7 @@ for delta_t in range(0, 1000, 100):
         Rc_b = quaternion_multiply(q, temp4)
 
         print("Rc in Body Frame is:", Rc_b[1:4])
+        print("Mod of Rc is: ", mod_Rc)
         print()
 
 
