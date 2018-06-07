@@ -12,6 +12,8 @@ import matplotlib.pyplot as plt
 from astropy import units as u
 from poliastro.bodies import Earth
 from poliastro.twobody import Orbit
+from astropy.time import Time
+from datetime import  timedelta
 import poliastro.twobody
 import poliastro
 from poliastro.plotting import plot
@@ -72,7 +74,9 @@ raan = 359.859 * u.deg
 argp = 0 * u.deg
 # noinspection PyUnresolvedReferences
 nu = 359.874 * u.deg
-ss = Orbit.from_classical(Earth, a, ecc, inc, raan, argp, nu, 2448122.5)
+date_epoch = Time("2019-09-01 00:00", scale='utc')
+ss = Orbit.from_classical(Earth, a, ecc, inc, raan, argp, nu, date_epoch)
+# 2448122.5
 
 # Simulation Loop Starts
 for delta_t in range(0, 1000, 100):
@@ -85,15 +89,18 @@ for delta_t in range(0, 1000, 100):
         print(" ", q[i], " "),
     print("")
     print()
-    #q conjugate
+    # q conjugate
     q_star = [q[0], -q[1], -q[2], -q[3]]
+
     X = [[q[0], -q[1], -q[2], -q[3]],
          [q[1], q[0], -q[3], q[1]],
          [q[2], q[3], q[0], -q[1]],
          [q[3], -q[2], q[1], q[0]]]
-    #Julian Date from current Date
+
+    # Julian Date from current Date
     JD = 367 * year - int(7 * (year + int((month + 9) / 12))) + int(275 * month / 9) + day + 1721013.5 + (hour / 24) + (
             minute / 14400) + ((second + (delta_t*0.001)) / 86400)
+
     T_UT1 = (JD - 2451545.0) / 36525
     lambda_Msun = 280.4606184 + (36000.77005361 * T_UT1)
     M_Sun = 357.5277233 + (35999.05034 * T_UT1)
@@ -130,14 +137,21 @@ for delta_t in range(0, 1000, 100):
     plot_y.append((s_b[3] / mod_sb))
 
     def get_Rc(ss):
-        # noinspection PyUnresolvedReferences
-        #ss = ss.propagate()
+        #
         #poliastro.twobody.propagation.mean_motion(ss, delta_t/1000)
-        #print("position vector is:", ss.state.r)
+
+        #t = timedelta(seconds=(delta_t/1000))
+        # noinspection PyUnresolvedReferences
+        #t = timedelta(seconds = delta_t)
+        #print (t)
+
+        t_inmins = (delta_t/(60*1000))
+        # noinspection PyUnresolvedReferences
+        ss = ss.propagate(t_inmins * u.min)
         Rc = ss.state.r.value
+        print(ss.epoch)
 
         # noinspection PyUnresolvedReferences
-
         #ss_new = ss.propagate(delta_t/1000 * u.s)
         #print("Orbit Details: ", ss_new, ss_new.epoch)
 
