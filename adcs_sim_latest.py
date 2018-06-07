@@ -44,13 +44,11 @@ plot_alpha1 = []
 plot_alpha2 = []
 plot_alpha3 = []
 
+# Random Quaternion
 q = [0, 0, 0, 0]
-
 for i in range(0, 4):
     q[i] = random.uniform(0, 1)  # initial quaternion values between 0 and 1
 
-
-# print (q[0],q[1],q[2],q[3])
 
 # 4x4 matrix
 X = [[q[0], -q[1], -q[2], -q[3]],
@@ -93,7 +91,7 @@ ss = Orbit.from_classical(Earth, a, ecc, inc, raan, argp, nu, date_epoch)
 # 2448122.5
 
 # Simulation Loop Starts
-for delta_t in range(0, 10000, 100):
+for delta_t in range(0, 60000, 100):
     print("Quaternion after ", delta_t, "milliseconds is: "),
     for i in range(0, 4):
         q[i] = q[i] + (rate_of_change[i] * delta_t * 0.001)
@@ -175,7 +173,7 @@ for delta_t in range(0, 10000, 100):
         return Rc
 
 
-    def gravity_gradient_torque(I , Rc):    
+    def gravity_gradient_torque(I , Rc):
 
         Tg = [0, 0, 0]
 
@@ -191,7 +189,7 @@ for delta_t in range(0, 10000, 100):
         temp4 = quaternion_multiply(L1, q_star)
         Rc_b = quaternion_multiply(q, temp4)
 
-        print("Rc in Body Frame is:", Rc_b[1:4])
+        print("Rc in Body Frame is:", Rc_b)
         print("Mod of Rc is: ", mod_Rc)
         print()
 
@@ -207,7 +205,7 @@ for delta_t in range(0, 10000, 100):
 
         return Tg
 
-    # Eulers Formula
+    # Euler's Formula
     def get_alpha(I, Tg, omega):
 
         temp1 = [0, 0, 0]
@@ -219,7 +217,7 @@ for delta_t in range(0, 10000, 100):
         # cross product
         temp2 = [omega[1] * temp1[2] - omega[2] * temp1[1],
                  omega[2] * temp1[0] - omega[0] * temp1[2],
-                omega[0] * temp1[1] - omega[1] * temp1[0]]
+                 omega[0] * temp1[1] - omega[1] * temp1[0]]
 
         temp3 = [0, 0, 0]
         for i in range(0, 3):
@@ -252,7 +250,6 @@ for delta_t in range(0, 10000, 100):
     # I[2][2] = 10 * ((0.2 ** 2) + (0.45 ** 2)) / 12
 
     L2 = get_Rc(ss)
-
     print("Rc in ECI Frame in meters: ", L2)
     print()
 
@@ -277,16 +274,18 @@ for delta_t in range(0, 10000, 100):
 
     print("Current Omega is", omega_three)
     print()
-    plot_t.append(delta_t)
 
     plot_omega1.append(omega_three[0] * 57.2958)
     plot_omega2.append(omega_three[1] * 57.2958)
     plot_omega3.append(omega_three[2] * 57.2958)
 
+    plot_t.append(delta_t)
+
     #updating rate of change of quaternion
     for i in range(0, 4):
+        rate_of_change[i] = 0
         for j in range(0, 4):
-            rate_of_change[i] = 0.5*X[i][j] * omega[j]
+            rate_of_change[i] += 0.5*X[i][j] * omega[j]
 
 print (plot_t)
 print(plot_Tg1)
