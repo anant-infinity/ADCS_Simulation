@@ -17,9 +17,9 @@ from datetime import  timedelta
 import poliastro.twobody
 import poliastro
 from poliastro.plotting import plot
-plt.style.use("seaborn")
+#plt.style.use("seaborn")
 
-#initial date
+# initial date
 year = 2019
 month = 9
 day = 1
@@ -29,6 +29,20 @@ second = 0
 
 plot_y = []
 plot_x = []
+
+plot_t = []
+
+plot_Tg1 = []
+plot_Tg2 = []
+plot_Tg3 = []
+
+plot_omega1 = []
+plot_omega2 = []
+plot_omega3 = []
+
+plot_alpha1 = []
+plot_alpha2 = []
+plot_alpha3 = []
 
 q = [0, 0, 0, 0]
 
@@ -79,7 +93,7 @@ ss = Orbit.from_classical(Earth, a, ecc, inc, raan, argp, nu, date_epoch)
 # 2448122.5
 
 # Simulation Loop Starts
-for delta_t in range(0, 1000, 100):
+for delta_t in range(0, 10000, 100):
     print("Quaternion after ", delta_t, "milliseconds is: "),
     for i in range(0, 4):
         q[i] = q[i] + (rate_of_change[i] * delta_t * 0.001)
@@ -145,7 +159,7 @@ for delta_t in range(0, 1000, 100):
         #t = timedelta(seconds = delta_t)
         #print (t)
 
-        t_inmins = (delta_t/(60*1000))
+        t_inmins = (delta_t/60000)
         # noinspection PyUnresolvedReferences
         ss = ss.propagate(t_inmins * u.min)
         Rc = ss.state.r.value
@@ -160,10 +174,8 @@ for delta_t in range(0, 1000, 100):
             Rc[i]=Rc[i]*1000
         return Rc
 
-    print("Rc in ECI Frame in meters: ", get_Rc(ss))
-    print()
 
-    def gravity_gradient_torque(I , Rc):     # Rc is distance of CM from center of Earth
+    def gravity_gradient_torque(I , Rc):    
 
         Tg = [0, 0, 0]
 
@@ -189,24 +201,11 @@ for delta_t in range(0, 1000, 100):
         #Rc2 = random.uniform(0, 1)
         #Rc3 = random.uniform(0, 1)
 
-        Tg[0] = (k * Rc_b[2] * Rc_b[3] * (I[2][2] - I[1][1])) / (mod_Rc ** 5)
-        Tg[1] = (k * Rc_b[1] * Rc_b[3] * (I[0][0] - I[2][2])) / (mod_Rc ** 5)
-        Tg[2] = (k * Rc_b[1] * Rc_b[2] * (I[1][1] - I[0][0])) / (mod_Rc ** 5)
+        Tg[0] = ((k * Rc_b[2] * Rc_b[3] * (I[2][2] - I[1][1])) / (mod_Rc ** 5))
+        Tg[1] = ((k * Rc_b[1] * Rc_b[3] * (I[0][0] - I[2][2])) / (mod_Rc ** 5))
+        Tg[2] = ((k * Rc_b[1] * Rc_b[2] * (I[1][1] - I[0][0])) / (mod_Rc ** 5))
+
         return Tg
-
-    # MI got from Spencer
-    I = [[0.09, 0, 0], [0, 0.12, 0], [0, 0, 0.14]]
-
-    # Moment of Inertia - Assuming uniform cuboid and assuming principal axes (approx.)
-    # I = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
-
-    # I[0][0] = 10 * ((0.2 ** 2) + (0.3 ** 2)) / 12
-    # I[1][1] = 10 * ((0.45 ** 2) + (0.3 ** 2)) / 12
-    # I[2][2] = 10 * ((0.2 ** 2) + (0.45 ** 2)) / 12
-    L2 = get_Rc(ss)
-    Tg = gravity_gradient_torque(I, L2)
-    print("Torque is :", Tg)
-    print()
 
     # Eulers Formula
     def get_alpha(I, Tg, omega):
@@ -242,20 +241,82 @@ for delta_t in range(0, 1000, 100):
         return alpha
 
 
-    for i in range(0,3):
-        omega[i+1] = omega[i+1] + (get_alpha(I, Tg, omega_three)[i]*(delta_t/1000))
-        omega_three[i] = omega_three[i] + (get_alpha(I, Tg, omega_three)[i]*(delta_t/1000))
+    # MI got from Spencer
+    I = [[0.09, 0, 0], [0, 0.12, 0], [0, 0, 0.14]]
 
-    print("Omega after", delta_t,"Milliseconds is: ",omega_three )
+    # Moment of Inertia - Assuming uniform cuboid and assuming principal axes (approx.)
+    # I = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
+
+    # I[0][0] = 10 * ((0.2 ** 2) + (0.3 ** 2)) / 12
+    # I[1][1] = 10 * ((0.45 ** 2) + (0.3 ** 2)) / 12
+    # I[2][2] = 10 * ((0.2 ** 2) + (0.45 ** 2)) / 12
+
+    L2 = get_Rc(ss)
+
+    print("Rc in ECI Frame in meters: ", L2)
     print()
 
+    Tg = gravity_gradient_torque(I, L2)
+    print("Torque is :", Tg)
+    print()
+
+    plot_Tg1.append(Tg[0])
+    plot_Tg2.append(Tg[1])
+    plot_Tg3.append(Tg[2])
+
+    alpha = get_alpha(I, Tg, omega_three)
+    print("Current alpha is: ", alpha)
+
+    plot_alpha1.append(alpha[0] * 57.2958)
+    plot_alpha2.append(alpha[1] * 57.2958)
+    plot_alpha3.append(alpha[2] * 57.2958)
+
+    for i in range(0,3):
+        omega[i+1] = omega[i+1] + (alpha[i]*0.1)
+        omega_three[i] = omega_three[i] + (alpha[i]*0.1)
+
+    print("Current Omega is", omega_three)
+    print()
+    plot_t.append(delta_t)
+
+    plot_omega1.append(omega_three[0] * 57.2958)
+    plot_omega2.append(omega_three[1] * 57.2958)
+    plot_omega3.append(omega_three[2] * 57.2958)
+
+    #updating rate of change of quaternion
     for i in range(0, 4):
         for j in range(0, 4):
             rate_of_change[i] = 0.5*X[i][j] * omega[j]
 
+print (plot_t)
+print(plot_Tg1)
+plt.subplot(3, 1, 1)
+plt.plot(plot_t, plot_Tg1, 'b-' , label='Torque about x')
+plt.plot(plot_t, plot_Tg2, 'r-' , label='Torque about y')
+plt.plot(plot_t, plot_Tg3, 'g-' , label='Torque about z')
+plt.title('Tumbling  Simulation')
+plt.ylabel('Torque')
+plt.legend(loc='best')
 
+plt.subplot(3, 1, 2)
+plt.plot(plot_t, plot_alpha1, 'b-' , label='Alpha about x')
+plt.plot(plot_t, plot_alpha2, 'r-' , label='Alpha about y')
+plt.plot(plot_t, plot_alpha3, 'g-' , label='Alpha about z')
+plt.ylabel('Angular Acceleration\ndegree/sec^2')
+plt.legend(loc='best')
 
-plt.plot(plot_x, plot_y)
+plt.subplot(3, 1, 3)
+plt.plot(plot_t, plot_omega1, 'b-', label='omega about x')
+plt.plot(plot_t, plot_omega2, 'r-', label='omega about y')
+plt.plot(plot_t, plot_omega3, 'g-', label='omega about z')
+plt.ylabel('angular velocity\ndegree/s')
+plt.legend(loc='best')
 plt.xlabel("Time\nIn Milliseconds")
-plt.ylabel("Direction Cosine withe Z axis")
+
+
 plt.show()
+
+# plt.plot(plot_x, plot_y)
+# plt.xlabel("Time\nIn Milliseconds")
+# plt.ylabel("Direction Cosine withe Z axis")
+# plt.show()
